@@ -25,16 +25,19 @@ namespace wl
             bool showHelp = false;
             string tempoToken = ConfigurationManager.AppSettings["TempoToken"];
             string jiraUsername = ConfigurationManager.AppSettings["JiraUsername"];
+            string jiraAccountId = ConfigurationManager.AppSettings["JiraAccountId"];
+            string jiraAccessToken = ConfigurationManager.AppSettings["JiraAccessToken"];
+            bool addIssueNames = false;
 
             Console.OutputEncoding = Encoding.UTF8;
 
             var p = new OptionSet()
             {
                 { "l|log=", "The path to a log file to parse. Multiple -l options can be specified on the command line.",
-                    v => logFilePaths.Add(v) },
+                    l => logFilePaths.Add(l) },
 
                 { "c|calculate", "Calculate hours only. Do not post work logs to Tempo.",
-                    v => calculateOnly = (v != null) },
+                    c => calculateOnly = (c != null)},
 
                 { "t|tempoToken=", "Set the token value for the api call.",
                     t => tempoToken = t },
@@ -42,8 +45,17 @@ namespace wl
                 { "u|jiraUsername=", "Set the username for the api call.",
                     u => jiraUsername = u },
 
+                { "d|jiraAccountId=", "Set the account id for the api call.",
+                    d => jiraAccountId = d},
+
+                { "i|addIssueNames", "Add the issue name to the description.",
+                    i => addIssueNames = (i != null) },
+
+                { "j|jiraAccessToken=", "Set the access token for the api call.",
+                    j => jiraAccessToken = j },
+
                 { "h|help", "Show this message.",
-                    v => showHelp = (v != null) }
+                    h => showHelp = (h != null) }
             };
             
             try
@@ -68,14 +80,14 @@ namespace wl
                 return;
             }
 
-            var service = new Tempo.Client(jiraUsername, tempoToken);
+            var service = new Tempo.Client(jiraAccountId, jiraUsername, tempoToken, jiraAccessToken);
 
             foreach (var logFilePath in logFilePaths)
             {
                 if (File.Exists(logFilePath))
                 {
                     var logs = GetWorklogs(logFilePath);
-                    PostWorklogs(service, logs, calculateOnly);
+                    PostWorklogs(service, logs, calculateOnly, addIssueNames);
                 }
             }
         }
@@ -101,11 +113,16 @@ namespace wl
             return logs;
         }
 
-        static void PostWorklogs(Tempo.Client service, WorkLogCollection logs, bool calculateOnly)
+        static void PostWorklogs(Tempo.Client service, WorkLogCollection logs, bool calculateOnly, bool addIssueNames)
         {
             Console.WriteLine("Worklogs:");
             foreach (var log in logs)
             {
+                if (addIssueNames)
+                {
+                    service.AddIssueName(log);
+                }
+
                 var logText = log.ToString();
                 var width = 80;
                 try
@@ -153,7 +170,7 @@ namespace wl
         static void ShowSummary(WorkLogCollection logs)
         {
             var totalCount = logs.Count;
-            var totalDuration = TimeSpan.FromMinutes(logs.Where(l => l.Project != string.Empty).Sum(l => l.Minutes));
+            var totalDuration = TimeSpan.FromMinutes(logs.Where(l => !string.IsNullOrEmpty(l.Project)).Sum(l => l.Minutes));
 
             var groups = logs
                 .GroupBy(l => l.Project)

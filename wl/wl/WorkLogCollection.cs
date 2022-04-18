@@ -33,6 +33,9 @@ namespace wl
                     if (wl.Minutes < 0)
                         yield return errorStart + "negative time";
 
+                    if (wl.Minutes == 0)
+                        yield return errorStart + "zero time";
+
                     if (wl.TaskId > 0 && string.IsNullOrEmpty(wl.Message))
                         yield return errorStart + "no comment";
 

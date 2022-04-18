@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -11,14 +12,21 @@ namespace wl.Tempo
 {
     public class Client
     {
+        private string jiraAccountId;
         private string username;
-        private string clientSecret;
-        private const string uri = "https://api.tempo.io/core/3/worklogs";
+        private string tempoClientSecret;
+        private string jiraAccessToken;
+        private const string worklogUri = "https://api.tempo.io/core/3/worklogs";
+        private const string issueUriFormat = "https://rollick.atlassian.net/rest/api/3/issue/{0}?fields=summary";
 
-        public Client(string username, string clientSecret)
+        private Dictionary<string, string> _issueNameCache = new Dictionary<string, string>();
+
+        public Client(string jiraAccountId, string username, string tempoClientSecret, string jiraAccessToken)
         {
+            this.jiraAccountId = jiraAccountId;
             this.username = username;
-            this.clientSecret = clientSecret;
+            this.tempoClientSecret = tempoClientSecret;
+            this.jiraAccessToken = jiraAccessToken;
         }
 
         public bool CreateWorkLog(wl.WorkLog wl)
@@ -31,10 +39,68 @@ namespace wl.Tempo
                 TimeSpent = new TimeSpan(0, (int)wl.Minutes, 0),
                 Start = wl.Begin,
                 Description = wl.Message,
-                AuthorAccountId = username
+                AuthorAccountId = jiraAccountId
             };
 
             return PostWorklog(workLogBean);
+        }
+
+        public void AddIssueName(wl.WorkLog wl)
+        {
+            if (wl.TaskId == 0) return;
+
+            var issueName = GetIssueName(wl);
+
+            if (issueName != null)
+            {
+                wl.Message = issueName.Trim() + " - " + wl.Message;
+            }
+        }
+
+        private string GetIssueName(wl.WorkLog wl)
+        {
+
+            var issueKey = string.Join("-", wl.Project, wl.TaskId.ToString());
+
+            if (!_issueNameCache.ContainsKey(issueKey))
+            {
+                var uri = string.Format(issueUriFormat, issueKey);
+
+                System.Net.ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11;
+
+                //Start the request using the necessary url, credentials, and content
+                var request = (HttpWebRequest)WebRequest.Create(uri);
+                request.Method = "GET";
+                request.ContentType = "application/json";
+                request.ContentLength = 0;
+                var svcCredentials = Convert.ToBase64String(ASCIIEncoding.ASCII.GetBytes(this.username + ":" + this.jiraAccessToken));
+                request.Headers.Add("Authorization", string.Format("Basic {0}", svcCredentials));
+
+
+                var response = (HttpWebResponse)request.GetResponse();
+
+                if ((response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.Created) && response.ContentType.Contains("application/json"))
+                {
+                    var memoryStreamResponse = new MemoryStream();
+                    response.GetResponseStream().CopyTo(memoryStreamResponse);
+                    memoryStreamResponse.Position = 0;
+
+                    var result = new StreamReader(memoryStreamResponse).ReadToEnd();
+
+                    memoryStreamResponse.Position = 0;
+
+                    var responseObject = JObject.Parse(result);
+                    var issueName = ((string)responseObject["fields"]["summary"]);
+
+                    _issueNameCache[issueKey] = issueName;
+                }
+                else
+                {
+                    _issueNameCache[issueKey] = null;
+                }
+            }
+
+            return _issueNameCache[issueKey];
         }
 
         private bool PostWorklog(WorkLog workLogBean)
@@ -50,11 +116,11 @@ namespace wl.Tempo
             System.Net.ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11;
 
             //Start the request using the necessary url, credentials, and content
-            var request = (HttpWebRequest)WebRequest.Create(uri);
+            var request = (HttpWebRequest)WebRequest.Create(worklogUri);
             request.Method = "POST";
             request.ContentType = "application/json";
             request.ContentLength = 0;
-            request.Headers.Add("Authorization", string.Format("Bearer {0}", this.clientSecret));
+            request.Headers.Add("Authorization", string.Format("Bearer {0}", this.tempoClientSecret));
 
             var memoryStream = new MemoryStream();
             javascriptSerializer.WriteObject(memoryStream, workLogBean);
