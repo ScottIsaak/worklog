@@ -30,9 +30,9 @@ namespace wl
 
         public override string ToString()
         {
-            return string.Format("{0,10:t} ({3,3} min) {1,8} {2}",
+            return string.Format("{0,10:t} ({3,3} min) {1,10} {2}",
                 Begin,
-                TaskId > 0 ? string.Join("-", Project, TaskId.ToString()) : "        ",
+                TaskId > 0 ? string.Join("-", Project, TaskId.ToString()) : "          ",
                 Message,
                 Minutes);
         }

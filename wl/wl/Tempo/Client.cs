@@ -49,18 +49,18 @@ namespace wl.Tempo
         {
             if (wl.TaskId == 0) return;
 
-            var issueName = GetIssueName(wl);
+            var issueKey = string.Join("-", wl.Project, wl.TaskId.ToString());
+
+            var issueName = GetIssueName(issueKey);
 
             if (issueName != null)
-            {
-                wl.Message = issueName.Trim() + " - " + wl.Message;
-            }
+                wl.Message = $"[{issueKey}] {issueName.Trim()} - {wl.Message}";
         }
 
-        private string GetIssueName(wl.WorkLog wl)
+        private string GetIssueName(string issueKey)
         {
 
-            var issueKey = string.Join("-", wl.Project, wl.TaskId.ToString());
+            
 
             if (!_issueNameCache.ContainsKey(issueKey))
             {
