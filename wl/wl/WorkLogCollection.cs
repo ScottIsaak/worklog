@@ -9,6 +9,17 @@ namespace wl
 {
     public class WorkLogCollection : Collection<WorkLog>
     {
+        private readonly Dictionary<string, string> _deprecatedTags = new Dictionary<string, string>
+        {
+            { "TIME-3", "TIME-29" },
+            { "TIME-8", "TIME-30" },
+            { "TIME-7", "TIME-31" },
+            { "TIME-6", "TIME-32" },
+            { "TIME-5", "TIME-33" },
+            { "TIME-19", "TIME-34" }
+        };
+
+
         protected override void InsertItem(int index, WorkLog item)
         {
             if (index > 0)
@@ -41,6 +52,9 @@ namespace wl
 
                     if (wl.Minutes > 60 * 24)
                         yield return errorStart + "over a day";
+
+                    if(_deprecatedTags.ContainsKey(tag))
+                        yield return errorStart + $"deprecated tag {tag} (use {_deprecatedTags[tag]} instead)";
                 }
             }
         }

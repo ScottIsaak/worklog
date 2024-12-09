@@ -31,7 +31,7 @@ function activate(context) {
 				new vscode.CompletionItem({ "label": 'TIME-22', "description": 'Scrum' }, vscode.CompletionItemKind.Text),
 				new vscode.CompletionItem({ "label": 'TIME-21', "description": 'Help Desk Support' }, vscode.CompletionItemKind.Text),
 				new vscode.CompletionItem({ "label": 'TIME-20', "description": 'Enterprise Client Stand-up' }, vscode.CompletionItemKind.Text),
-				new vscode.CompletionItem({ "label": 'TIME-19', "description": 'Responding to Email' }, vscode.CompletionItemKind.Text),
+				new vscode.CompletionItem({ "label": 'TIME-34', "description": 'Responding to Email' }, vscode.CompletionItemKind.Text),
 				new vscode.CompletionItem({ "label": 'TIME-18', "description": 'Sales/Prospect Exp.' }, vscode.CompletionItemKind.Text),
 				new vscode.CompletionItem({ "label": 'TIME-17', "description": 'Team Management / Supervising' }, vscode.CompletionItemKind.Text),
 				new vscode.CompletionItem({ "label": 'TIME-16', "description": '1:1' }, vscode.CompletionItemKind.Text),
@@ -39,12 +39,12 @@ function activate(context) {
 				new vscode.CompletionItem({ "label": 'TIME-14', "description": 'Continuing education' }, vscode.CompletionItemKind.Text),
 				new vscode.CompletionItem({ "label": 'TIME-10', "description": 'Recruiting' }, vscode.CompletionItemKind.Text),
 				new vscode.CompletionItem({ "label": 'TIME-9', "description": 'Product Design and R+D' }, vscode.CompletionItemKind.Text),
-				new vscode.CompletionItem({ "label": 'TIME-8', "description": 'Meetings / Discussions' }, vscode.CompletionItemKind.Text),
-				new vscode.CompletionItem({ "label": 'TIME-7', "description": 'Daily Stand-Up / Scrum' }, vscode.CompletionItemKind.Text),
-				new vscode.CompletionItem({ "label": 'TIME-6', "description": 'Time Entry' }, vscode.CompletionItemKind.Text),
-				new vscode.CompletionItem({ "label": 'TIME-5', "description": 'Agile Planning + Grooming' }, vscode.CompletionItemKind.Text),
+				new vscode.CompletionItem({ "label": 'TIME-30', "description": 'Meetings / Discussions' }, vscode.CompletionItemKind.Text),
+				new vscode.CompletionItem({ "label": 'TIME-31', "description": 'Daily Stand-Up / Scrum' }, vscode.CompletionItemKind.Text),
+				new vscode.CompletionItem({ "label": 'TIME-32', "description": 'Time Entry' }, vscode.CompletionItemKind.Text),
+				new vscode.CompletionItem({ "label": 'TIME-33', "description": 'Agile Planning + Grooming' }, vscode.CompletionItemKind.Text),
 				new vscode.CompletionItem({ "label": 'TIME-4', "description": 'Employee Training' }, vscode.CompletionItemKind.Text),
-				new vscode.CompletionItem({ "label": 'TIME-3', "description": 'Internal Service' }, vscode.CompletionItemKind.Text),
+				new vscode.CompletionItem({ "label": 'TIME-29', "description": 'Internal Service' }, vscode.CompletionItemKind.Text),
 				new vscode.CompletionItem({ "label": 'TIME-2', "description": 'Holiday' }, vscode.CompletionItemKind.Text),
 				new vscode.CompletionItem({ "label": 'TIME-1', "description": 'PTO' }, vscode.CompletionItemKind.Text),
 				new vscode.CompletionItem({ "label": 'TIAR-7', "description": 'Meetings / Discussions' }, vscode.CompletionItemKind.Text),
@@ -79,8 +79,18 @@ function activate(context) {
 				new vscode.CompletionItem({ "label": 'AIM-96', "description": 'Code Reviews' }, vscode.CompletionItemKind.Text),
 				new vscode.CompletionItem({ "label": 'AIM-95', "description": 'Meetings / Discussions / Misc' }, vscode.CompletionItemKind.Text),
 				new vscode.CompletionItem({ "label": 'AIM-55', "description": 'General Aimbase QA Work' }, vscode.CompletionItemKind.Text),
-				new vscode.CompletionItem({ "label": 'AIM-6', "description": 'Setup Jira' }, vscode.CompletionItemKind.Text)
-
+				new vscode.CompletionItem({ "label": 'AIM-6', "description": 'Setup Jira' }, vscode.CompletionItemKind.Text),
+				new vscode.CompletionItem({ "label": 'TIME-3', "description": 'TIME-3 (Internal Service) is deprecated, use TIME-29 instead' }, vscode.CompletionItemKind.Text),
+				new vscode.CompletionItem({ "label": 'TIME-8', "description": 'TIME-8 (Meetings / Discussions) is deprecated, use TIME-30 instead' }, vscode.CompletionItemKind.Text),
+				new vscode.CompletionItem({ "label": 'TIME-7', "description": 'TIME-7 (Daily Stand-Up/Scrum) is deprecated, use TIME-31 instead' }, vscode.CompletionItemKind.Text),
+				new vscode.CompletionItem({ "label": 'TIME-6', "description": 'TIME-6 (Time Entry) is deprecated, use TIME-32 instead' }, vscode.CompletionItemKind.Text),
+				new vscode.CompletionItem({ "label": 'TIME-5', "description": 'TIME-5 (Agile Planning + Grooming) is deprecated, use TIME-33 instead' }, vscode.CompletionItemKind.Text),
+				new vscode.CompletionItem({ "label": 'TIME-19', "description": 'TIME-19 (Responding to Email) is deprecated, use TIME-34 instead' }, vscode.CompletionItemKind.Text),
+				new vscode.CompletionItem({ "label": 'TIME-27', "description": 'SOC Compliance' }, vscode.CompletionItemKind.Text),
+				new vscode.CompletionItem({ "label": 'NB-1', "description": 'Discussions / Meetings / Misc - Aimbase - Nimbus' }, vscode.CompletionItemKind.Text),
+				new vscode.CompletionItem({ "label": 'MAXX-74', "description": 'Discussions / Meetings / Misc - Aimbase - MAXX-D' }, vscode.CompletionItemKind.Text),
+				new vscode.CompletionItem({ "label": 'BSPA-1', "description": 'Discussions / Meetings / Misc - Aimbase - Bullfrog Spas' }, vscode.CompletionItemKind.Text),
+				new vscode.CompletionItem({ "label": 'NMMA-1811', "description": 'Discussions / Meetings / Misc - Aimbase - Balise Pontoon' }, vscode.CompletionItemKind.Text)
 			];
 		}
 	}, '[');
