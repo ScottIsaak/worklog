@@ -120,7 +120,7 @@ namespace wl
             {
                 if (addIssueNames)
                 {
-                    service.AddIssueName(log);
+                    service.AddIssueDetails(log);
                 }
 
                 var logText = log.ToString();

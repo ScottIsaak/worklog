@@ -28,11 +28,13 @@ namespace wl
             }
         }
 
+        public string IssueKey => string.Join("-", Project, TaskId.ToString());
+
         public override string ToString()
         {
             return string.Format("{0,10:t} ({3,3} min) {1,10} {2}",
                 Begin,
-                TaskId > 0 ? string.Join("-", Project, TaskId.ToString()) : "          ",
+                TaskId > 0 ? IssueKey : "          ",
                 Message,
                 Minutes);
         }

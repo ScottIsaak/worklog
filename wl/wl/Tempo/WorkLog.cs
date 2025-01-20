@@ -10,8 +10,9 @@ namespace wl.Tempo
     [DataContract]
     public class WorkLog
     {
-        [DataMember(Name = "issueKey", IsRequired = true)]
-        public string IssueKey { get; set; }
+        [DataMember(Name = "issueId", IsRequired = true)]
+        public long IssueId { get; set; }
+
 
         public DateTime Start { get; set; }
         public TimeSpan TimeSpent { get; set; }

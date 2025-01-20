@@ -7,6 +7,7 @@ using System.Net;
 using System.Runtime.Serialization.Json;
 using System.Text;
 using System.Threading.Tasks;
+using wl.Jira;
 
 namespace wl.Tempo
 {
@@ -16,10 +17,10 @@ namespace wl.Tempo
         private string username;
         private string tempoClientSecret;
         private string jiraAccessToken;
-        private const string worklogUri = "https://api.tempo.io/core/3/worklogs";
+        private const string worklogUri = "https://api.tempo.io/4/worklogs";
         private const string issueUriFormat = "https://rollick.atlassian.net/rest/api/3/issue/{0}?fields=summary";
 
-        private Dictionary<string, string> _issueNameCache = new Dictionary<string, string>();
+        private Dictionary<string, Issue> _issueCache = new Dictionary<string, Issue>();
 
         public Client(string jiraAccountId, string username, string tempoClientSecret, string jiraAccessToken)
         {
@@ -35,7 +36,7 @@ namespace wl.Tempo
 
             var workLogBean = new WorkLog
             {
-                IssueKey = string.Join("-", wl.Project, wl.TaskId.ToString()),
+                IssueId = GetIssue(wl.IssueKey).IssueId,
                 TimeSpent = new TimeSpan(0, (int)wl.Minutes, 0),
                 Start = wl.Begin,
                 Description = wl.Message,
@@ -45,24 +46,19 @@ namespace wl.Tempo
             return PostWorklog(workLogBean);
         }
 
-        public void AddIssueName(wl.WorkLog wl)
+        public void AddIssueDetails(wl.WorkLog wl)
         {
             if (wl.TaskId == 0) return;
 
-            var issueKey = string.Join("-", wl.Project, wl.TaskId.ToString());
+            var issue = GetIssue(wl.IssueKey);
 
-            var issueName = GetIssueName(issueKey);
-
-            if (issueName != null)
-                wl.Message = $"[{issueKey}] {issueName.Trim()} - {wl.Message}";
+            if (issue != null)
+                wl.Message = $"[{wl.IssueKey}] {issue.Summary.Trim()} - {wl.Message}";
         }
 
-        private string GetIssueName(string issueKey)
+        private Issue GetIssue(string issueKey)
         {
-
-            
-
-            if (!_issueNameCache.ContainsKey(issueKey))
+            if (!_issueCache.ContainsKey(issueKey))
             {
                 var uri = string.Format(issueUriFormat, issueKey);
 
@@ -92,16 +88,25 @@ namespace wl.Tempo
                     var responseObject = JObject.Parse(result);
                     var issueName = ((string)responseObject["fields"]["summary"]);
 
-                    _issueNameCache[issueKey] = issueName;
+                    var issue = new Issue
+                    {
+                        IssueKey = issueKey,
+                        Summary = ((string)responseObject["fields"]["summary"]),
+                        IssueId = ((long)responseObject["id"])
+                    };
+
+                    _issueCache[issueKey] = issue;
                 }
                 else
                 {
-                    _issueNameCache[issueKey] = null;
+                    _issueCache[issueKey] = null;
                 }
             }
 
-            return _issueNameCache[issueKey];
+            return _issueCache[issueKey];
         }
+
+
 
         private bool PostWorklog(WorkLog workLogBean)
         {

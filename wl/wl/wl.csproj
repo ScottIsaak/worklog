@@ -52,6 +52,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Jira\Issue.cs" />
     <Compile Include="Tempo\Client.cs" />
     <Compile Include="Tempo\WorkLog.cs" />
     <Compile Include="WorkLogCollection.cs" />
