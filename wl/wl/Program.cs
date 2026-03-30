@@ -23,10 +23,10 @@ namespace wl
             var logFilePaths = new List<string>();
             bool calculateOnly = false;
             bool showHelp = false;
-            string tempoToken = ConfigurationManager.AppSettings["TempoToken"];
-            string jiraUsername = ConfigurationManager.AppSettings["JiraUsername"];
-            string jiraAccountId = ConfigurationManager.AppSettings["JiraAccountId"];
-            string jiraAccessToken = ConfigurationManager.AppSettings["JiraAccessToken"];
+            string tempoToken = Environment.GetEnvironmentVariable("TempoToken");
+            string jiraUsername = Environment.GetEnvironmentVariable("JiraUsername");
+            string jiraAccountId = Environment.GetEnvironmentVariable("JiraAccountId");
+            string jiraAccessToken = Environment.GetEnvironmentVariable("JiraAccessToken");
             bool addIssueNames = false;
 
             Console.OutputEncoding = Encoding.UTF8;
@@ -39,19 +39,19 @@ namespace wl
                 { "c|calculate", "Calculate hours only. Do not post work logs to Tempo.",
                     c => calculateOnly = (c != null)},
 
-                { "t|tempoToken=", "Set the token value for the api call.",
+                { "t|tempoToken=", "Set the token value for the api call. Or use the TempoToken environment variable. Create one at: https://rollick.atlassian.net/plugins/servlet/ac/io.tempo.jira/tempo-app#!/configuration/api-integration",
                     t => tempoToken = t },
 
-                { "u|jiraUsername=", "Set the username for the api call.",
+                { "u|jiraUsername=", "Set the username for the api call. Or use the JiraUsername environment variable. Get the value from your Atlassian profile page.",
                     u => jiraUsername = u },
 
-                { "d|jiraAccountId=", "Set the account id for the api call.",
+                { "d|jiraAccountId=", "Set the account id for the api call. Or use the JiraAccountId environment variable. Get the value from your Atlassian profile page URL.",
                     d => jiraAccountId = d},
 
                 { "i|addIssueNames", "Add the issue name to the description.",
                     i => addIssueNames = (i != null) },
 
-                { "j|jiraAccessToken=", "Set the access token for the api call.",
+                { "j|jiraAccessToken=", "Set the access token for the api call. Or use the JiraAccessToken environment variable. Create one at: https://id.atlassian.com/manage-profile/security/api-tokens",
                     j => jiraAccessToken = j },
 
                 { "h|help", "Show this message.",
