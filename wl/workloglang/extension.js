@@ -159,6 +159,25 @@ async function runWl(uri, commit) {
 		return;
 	}
 
+	var requiredEnv = commit
+		? ['JiraUsername', 'JiraAccessToken', 'TempoToken', 'JiraAccountId']
+		: ['JiraUsername', 'JiraAccessToken'];
+	var missingEnv = requiredEnv.filter(name => !(process.env[name] || '').trim());
+	if (missingEnv.length) {
+		var help = await vscode.window.showErrorMessage(
+			`Missing environment variable${missingEnv.length > 1 ? 's' : ''}: ${missingEnv.join(', ')}. ` +
+			'Set them, then fully restart VS Code so it picks them up.',
+			'Show Details');
+		if (help) {
+			var channel = getOutputChannel();
+			channel.show(true);
+			channel.appendLine('Missing environment variables required by wl.exe:');
+			missingEnv.forEach(name => channel.appendLine(`  ${name}: ${envHelp[name]}`));
+			channel.appendLine('');
+		}
+		return;
+	}
+
 	if (commit) {
 		var confirm = await vscode.window.showWarningMessage(
 			`Post work logs in ${path.basename(document.fileName)} to Tempo?`, { modal: true }, 'Commit');
@@ -189,8 +208,19 @@ async function runWl(uri, commit) {
 	child.on('close', code => {
 		output.appendLine(`=== Finished with exit code ${code} ===`);
 		output.appendLine('');
+		if (code !== 0) {
+			vscode.window.showErrorMessage(`wl ${commit ? 'commit' : 'preview'} failed. See the Worklog output for details.`, 'Show Output')
+				.then(choice => { if (choice) output.show(); });
+		}
 	});
 }
+
+var envHelp = {
+	JiraUsername: 'your Atlassian account email.',
+	JiraAccessToken: 'create one at https://id.atlassian.com/manage-profile/security/api-tokens',
+	TempoToken: 'create one at https://rollick.atlassian.net/plugins/servlet/ac/io.tempo.jira/tempo-app#!/configuration/api-integration',
+	JiraAccountId: 'the id at the end of your Atlassian profile page URL.'
+};
 
 /** @type {vscode.OutputChannel | undefined} */
 var outputChannel;

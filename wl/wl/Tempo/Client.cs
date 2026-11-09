@@ -34,9 +34,13 @@ namespace wl.Tempo
         {
             if (wl.TaskId == 0) return true;
 
+            var issue = GetIssue(wl.IssueKey);
+            if (issue == null)
+                throw new ApiException($"Jira issue {wl.IssueKey} could not be loaded.");
+
             var workLogBean = new WorkLog
             {
-                IssueId = GetIssue(wl.IssueKey).IssueId,
+                IssueId = issue.IssueId,
                 TimeSpent = new TimeSpan(0, (int)wl.Minutes, 0),
                 Start = wl.Begin,
                 Description = wl.Message,
@@ -73,7 +77,15 @@ namespace wl.Tempo
                 request.Headers.Add("Authorization", string.Format("Basic {0}", svcCredentials));
 
 
-                var response = (HttpWebResponse)request.GetResponse();
+                HttpWebResponse response;
+                try
+                {
+                    response = (HttpWebResponse)request.GetResponse();
+                }
+                catch (WebException ex)
+                {
+                    throw ApiException.FromWebException(ex, "Jira", "JiraUsername and JiraAccessToken", $"loading issue {issueKey}", notFoundMayBeAuth: true);
+                }
 
                 if ((response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.Created) && response.ContentType.Contains("application/json"))
                 {
@@ -138,7 +150,15 @@ namespace wl.Tempo
             requestStream.Write(contentArray, 0, contentArray.Length);
             requestStream.Close();
 
-            var response = (HttpWebResponse)request.GetResponse();
+            HttpWebResponse response;
+            try
+            {
+                response = (HttpWebResponse)request.GetResponse();
+            }
+            catch (WebException ex)
+            {
+                throw ApiException.FromWebException(ex, "Tempo", "TempoToken and JiraAccountId", "posting the worklog");
+            }
 
             if ((response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.Created) && response.ContentType.Contains("application/json"))
             {

@@ -11,7 +11,18 @@ WorkLogLang creates a new language for worklogs complete with syntax highlightin
 
 Output from each run is appended to the **Worklog** channel in the Output panel.
 
-Set `workloglang.wlPath` to the full path of `wl.exe`. The Tempo/Jira environment variables (`TempoToken`, `JiraUsername`, `JiraAccountId`, `JiraAccessToken`) must be available to VS Code.
+Set `workloglang.wlPath` to the full path of `wl.exe`.
+
+### Environment variables
+
+`wl.exe` reads its credentials from these environment variables. After setting them (e.g. with `setx`), fully restart VS Code so the extension sees them. The buttons check for them before running.
+
+| Variable | Needed for | Value |
+| --- | --- | --- |
+| `JiraUsername` | Preview, Commit | Your Atlassian account email. |
+| `JiraAccessToken` | Preview, Commit | An Atlassian API token: https://id.atlassian.com/manage-profile/security/api-tokens |
+| `TempoToken` | Commit | A Tempo API token: https://rollick.atlassian.net/plugins/servlet/ac/io.tempo.jira/tempo-app#!/configuration/api-integration |
+| `JiraAccountId` | Commit | The id at the end of your Atlassian profile page URL. |
 
 
 
