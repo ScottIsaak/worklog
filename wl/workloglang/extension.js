@@ -3,6 +3,9 @@
 const { match } = require('assert');
 const vscode = require('vscode');
 const http = require('http');
+const fs = require('fs');
+const path = require('path');
+const childProcess = require('child_process');
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -113,13 +116,127 @@ function activate(context) {
 	});
 	
 
+	var codeLensProvider = vscode.languages.registerCodeLensProvider('worklog', {
+		provideCodeLenses(document) {
+			var top = new vscode.Range(0, 0, 0, 0);
+			return [
+				new vscode.CodeLens(top, { title: '$(eye) Preview', tooltip: 'Calculate hours without posting to Tempo', command: 'workloglang.preview', arguments: [document.uri] }),
+				new vscode.CodeLens(top, { title: '$(cloud-upload) Commit', tooltip: 'Post work logs to Tempo', command: 'workloglang.commit', arguments: [document.uri] })
+			];
+		}
+	});
+
+	var previewCommand = vscode.commands.registerCommand('workloglang.preview', uri => runWl(uri, false));
+	var commitCommand = vscode.commands.registerCommand('workloglang.commit', uri => runWl(uri, true));
+
 	context.subscriptions.push(completionItemProvider);
 	context.subscriptions.push(hoverProvider);
+	context.subscriptions.push(codeLensProvider, previewCommand, commitCommand);
+}
+
+/**
+ * Runs wl.exe against a worklog file in a terminal.
+ * @param {vscode.Uri | undefined} uri
+ * @param {boolean} commit Post to Tempo when true; otherwise calculate only.
+ */
+async function runWl(uri, commit) {
+	var document = uri
+		? await vscode.workspace.openTextDocument(uri)
+		: vscode.window.activeTextEditor && vscode.window.activeTextEditor.document;
+	if (!document || document.languageId !== 'worklog') {
+		vscode.window.showErrorMessage('Open a .wl file to preview or commit.');
+		return;
+	}
+
+	var wlPath = vscode.workspace.getConfiguration('workloglang').get('wlPath');
+	if (!wlPath || !fs.existsSync(wlPath)) {
+		var choice = await vscode.window.showErrorMessage(
+			wlPath ? `wl.exe not found at "${wlPath}".` : 'The path to wl.exe is not configured.',
+			'Open Settings');
+		if (choice) {
+			vscode.commands.executeCommand('workbench.action.openSettings', 'workloglang.wlPath');
+		}
+		return;
+	}
+
+	var requiredEnv = commit
+		? ['JiraUsername', 'JiraAccessToken', 'TempoToken', 'JiraAccountId']
+		: ['JiraUsername', 'JiraAccessToken'];
+	var missingEnv = requiredEnv.filter(name => !(process.env[name] || '').trim());
+	if (missingEnv.length) {
+		var help = await vscode.window.showErrorMessage(
+			`Missing environment variable${missingEnv.length > 1 ? 's' : ''}: ${missingEnv.join(', ')}. ` +
+			'Set them, then fully restart VS Code so it picks them up.',
+			'Show Details');
+		if (help) {
+			var channel = getOutputChannel();
+			channel.show(true);
+			channel.appendLine('Missing environment variables required by wl.exe:');
+			missingEnv.forEach(name => channel.appendLine(`  ${name}: ${envHelp[name]}`));
+			channel.appendLine('');
+		}
+		return;
+	}
+
+	if (commit) {
+		var confirm = await vscode.window.showWarningMessage(
+			`Post work logs in ${path.basename(document.fileName)} to Tempo?`, { modal: true }, 'Commit');
+		if (confirm !== 'Commit') return;
+	}
+
+	if (document.isDirty && !(await document.save())) {
+		vscode.window.showErrorMessage('Could not save the worklog file.');
+		return;
+	}
+
+	var args = [`-l=${document.fileName}`, '-i'];
+	if (!commit) args.push('-c');
+
+	var output = getOutputChannel();
+	output.show(true);
+	output.appendLine(`=== ${commit ? 'Commit' : 'Preview'}: ${document.fileName} (${new Date().toLocaleString()}) ===`);
+
+	var child = childProcess.spawn(wlPath, args, { cwd: path.dirname(wlPath), windowsHide: true });
+	child.stdout.setEncoding('utf8');
+	child.stderr.setEncoding('utf8');
+	child.stdout.on('data', data => output.append(data));
+	child.stderr.on('data', data => output.append(data));
+	child.on('error', err => {
+		output.appendLine(`Failed to start wl.exe: ${err.message}`);
+		vscode.window.showErrorMessage(`Failed to start wl.exe: ${err.message}`);
+	});
+	child.on('close', code => {
+		output.appendLine(`=== Finished with exit code ${code} ===`);
+		output.appendLine('');
+		if (code !== 0) {
+			vscode.window.showErrorMessage(`wl ${commit ? 'commit' : 'preview'} failed. See the Worklog output for details.`, 'Show Output')
+				.then(choice => { if (choice) output.show(); });
+		}
+	});
+}
+
+var envHelp = {
+	JiraUsername: 'your Atlassian account email.',
+	JiraAccessToken: 'create one at https://id.atlassian.com/manage-profile/security/api-tokens',
+	TempoToken: 'create one at https://rollick.atlassian.net/plugins/servlet/ac/io.tempo.jira/tempo-app#!/configuration/api-integration',
+	JiraAccountId: 'the id at the end of your Atlassian profile page URL.'
+};
+
+/** @type {vscode.OutputChannel | undefined} */
+var outputChannel;
+
+function getOutputChannel() {
+	if (!outputChannel) {
+		outputChannel = vscode.window.createOutputChannel('Worklog');
+	}
+	return outputChannel;
 }
 
 
 // this method is called when your extension is deactivated
-function deactivate() {}
+function deactivate() {
+	if (outputChannel) outputChannel.dispose();
+}
 
 module.exports = {
 	activate,

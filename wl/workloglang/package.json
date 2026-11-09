@@ -2,7 +2,7 @@
 	"name": "workloglang",
 	"displayName": "WorklogLang",
 	"description": "Adds a worklog language with intellisense and syntax highlighting.",
-	"version": "1.3.0",
+	"version": "1.4.0",
 	"engines": {
 		"vscode": "^1.66.0"
 	},
@@ -23,6 +23,36 @@
 				"configuration": "./language-configuration.json"
 			}
 		],
+		"commands": [
+			{
+				"command": "workloglang.preview",
+				"title": "Preview Worklog",
+				"category": "Worklog",
+				"icon": "$(eye)"
+			},
+			{
+				"command": "workloglang.commit",
+				"title": "Commit Worklog to Tempo",
+				"category": "Worklog",
+				"icon": "$(cloud-upload)"
+			}
+		],
+		"menus": {
+			"commandPalette": [
+				{ "command": "workloglang.preview", "when": "editorLangId == worklog" },
+				{ "command": "workloglang.commit", "when": "editorLangId == worklog" }
+			]
+		},
+		"configuration": {
+			"title": "WorklogLang",
+			"properties": {
+				"workloglang.wlPath": {
+					"type": "string",
+					"default": "",
+					"description": "Full path to wl.exe, used by the Preview and Commit buttons on .wl files."
+				}
+			}
+		},
 		"grammars": [
 			{
 				"language": "worklog",

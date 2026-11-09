@@ -80,16 +80,56 @@ namespace wl
                 return;
             }
 
+            var missing = new List<string>();
+            if (addIssueNames || !calculateOnly)
+            {
+                if (string.IsNullOrWhiteSpace(jiraUsername)) missing.Add("JiraUsername (or -u): your Atlassian account email.");
+                if (string.IsNullOrWhiteSpace(jiraAccessToken)) missing.Add("JiraAccessToken (or -j): create one at https://id.atlassian.com/manage-profile/security/api-tokens");
+            }
+            if (!calculateOnly)
+            {
+                if (string.IsNullOrWhiteSpace(tempoToken)) missing.Add("TempoToken (or -t): create one at https://rollick.atlassian.net/plugins/servlet/ac/io.tempo.jira/tempo-app#!/configuration/api-integration");
+                if (string.IsNullOrWhiteSpace(jiraAccountId)) missing.Add("JiraAccountId (or -d): the id at the end of your Atlassian profile page URL.");
+            }
+            if (missing.Any())
+            {
+                WriteError("wl: Missing required credentials. Set these environment variables or pass the options:");
+                missing.ForEach(m => WriteError("  " + m));
+                Environment.ExitCode = 1;
+                return;
+            }
+
             var service = new Tempo.Client(jiraAccountId, jiraUsername, tempoToken, jiraAccessToken);
 
             foreach (var logFilePath in logFilePaths)
             {
-                if (File.Exists(logFilePath))
+                if (!File.Exists(logFilePath))
                 {
-                    var logs = GetWorklogs(logFilePath);
+                    WriteError($"wl: Log file not found: {logFilePath}");
+                    Environment.ExitCode = 1;
+                    continue;
+                }
+
+                var logs = GetWorklogs(logFilePath);
+                try
+                {
                     PostWorklogs(service, logs, calculateOnly, addIssueNames);
                 }
+                catch (Tempo.ApiException ex)
+                {
+                    Console.WriteLine();
+                    WriteError("wl: " + ex.Message);
+                    Environment.ExitCode = 1;
+                    return;
+                }
             }
+        }
+
+        static void WriteError(string message)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.Error.WriteLine(message);
+            Console.ResetColor();
         }
 
         static WorkLogCollection GetWorklogs(string logFilePath)
@@ -115,12 +155,21 @@ namespace wl
 
         static void PostWorklogs(Tempo.Client service, WorkLogCollection logs, bool calculateOnly, bool addIssueNames)
         {
+            var apiErrors = new List<string>();
+
             Console.WriteLine("Worklogs:");
             foreach (var log in logs)
             {
                 if (addIssueNames)
                 {
-                    service.AddIssueDetails(log);
+                    try
+                    {
+                        service.AddIssueDetails(log);
+                    }
+                    catch (Tempo.ApiException ex) when (!ex.IsAuthError)
+                    {
+                        apiErrors.Add(ex.Message);
+                    }
                 }
 
                 var logText = log.ToString();
@@ -132,14 +181,19 @@ namespace wl
                 catch { }
                 var status = Status.Skipped;
 
+                if (Console.IsOutputRedirected)
+                {
+                    // Cursor positioning isn't available, so write the status before the log text.
+                    status = PostWorklog(service, log, calculateOnly, apiErrors);
+                    Console.WriteLine("{0} {1}", StatusChar(status), logText);
+                    continue;
+                }
+
                 if (logText.Length > width) logText = string.Concat(logText.Substring(0, width - 3), "...");
 
                 Console.Write(logText);
 
-                if (!calculateOnly)
-                {
-                    status = service.CreateWorkLog(log) ? Status.Posted : Status.Failed;
-                }
+                status = PostWorklog(service, log, calculateOnly, apiErrors);
 
                 try
                 {
@@ -152,19 +206,45 @@ namespace wl
             }
 
             ShowSummary(logs);
+
+            if (apiErrors.Any())
+            {
+                apiErrors.Distinct().ToList().ForEach(e => WriteError("wl: " + e));
+                Environment.ExitCode = 1;
+            }
+        }
+
+        static Status PostWorklog(Tempo.Client service, WorkLog log, bool calculateOnly, List<string> apiErrors)
+        {
+            if (calculateOnly) return Status.Skipped;
+
+            try
+            {
+                return service.CreateWorkLog(log) ? Status.Posted : Status.Failed;
+            }
+            catch (Tempo.ApiException ex) when (!ex.IsAuthError)
+            {
+                apiErrors.Add($"{log.IssueKey}: {ex.Message}");
+                return Status.Failed;
+            }
         }
 
         static void WriteStatus(Status status)
         {
             Console.CursorLeft = 0;
-            switch (status)
-            {
-                case Status.Failed: Console.Write('X'); break;
-                case Status.Posted: Console.Write('√'); break;
-                case Status.Skipped: Console.Write('-'); break;
-            }
+            Console.Write(StatusChar(status));
             Console.CursorLeft = Console.BufferWidth - 1;
             Console.WriteLine();
+        }
+
+        static char StatusChar(Status status)
+        {
+            switch (status)
+            {
+                case Status.Failed: return 'X';
+                case Status.Posted: return '√';
+                default: return '-';
+            }
         }
 
         static void ShowSummary(WorkLogCollection logs)
