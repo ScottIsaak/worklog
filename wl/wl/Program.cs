@@ -132,6 +132,17 @@ namespace wl
                 catch { }
                 var status = Status.Skipped;
 
+                if (Console.IsOutputRedirected)
+                {
+                    // Cursor positioning isn't available, so write the status before the log text.
+                    if (!calculateOnly)
+                    {
+                        status = service.CreateWorkLog(log) ? Status.Posted : Status.Failed;
+                    }
+                    Console.WriteLine("{0} {1}", StatusChar(status), logText);
+                    continue;
+                }
+
                 if (logText.Length > width) logText = string.Concat(logText.Substring(0, width - 3), "...");
 
                 Console.Write(logText);
@@ -157,14 +168,19 @@ namespace wl
         static void WriteStatus(Status status)
         {
             Console.CursorLeft = 0;
-            switch (status)
-            {
-                case Status.Failed: Console.Write('X'); break;
-                case Status.Posted: Console.Write('√'); break;
-                case Status.Skipped: Console.Write('-'); break;
-            }
+            Console.Write(StatusChar(status));
             Console.CursorLeft = Console.BufferWidth - 1;
             Console.WriteLine();
+        }
+
+        static char StatusChar(Status status)
+        {
+            switch (status)
+            {
+                case Status.Failed: return 'X';
+                case Status.Posted: return '√';
+                default: return '-';
+            }
         }
 
         static void ShowSummary(WorkLogCollection logs)

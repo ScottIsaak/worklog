@@ -5,6 +5,7 @@ const vscode = require('vscode');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const childProcess = require('child_process');
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -172,18 +173,40 @@ async function runWl(uri, commit) {
 	var args = [`-l=${document.fileName}`, '-i'];
 	if (!commit) args.push('-c');
 
-	var terminal = vscode.window.createTerminal({
-		name: `wl ${commit ? 'commit' : 'preview'}: ${path.basename(document.fileName)}`,
-		shellPath: wlPath,
-		shellArgs: args,
-		cwd: path.dirname(wlPath)
+	var output = getOutputChannel();
+	output.show(true);
+	output.appendLine(`=== ${commit ? 'Commit' : 'Preview'}: ${document.fileName} (${new Date().toLocaleString()}) ===`);
+
+	var child = childProcess.spawn(wlPath, args, { cwd: path.dirname(wlPath), windowsHide: true });
+	child.stdout.setEncoding('utf8');
+	child.stderr.setEncoding('utf8');
+	child.stdout.on('data', data => output.append(data));
+	child.stderr.on('data', data => output.append(data));
+	child.on('error', err => {
+		output.appendLine(`Failed to start wl.exe: ${err.message}`);
+		vscode.window.showErrorMessage(`Failed to start wl.exe: ${err.message}`);
 	});
-	terminal.show();
+	child.on('close', code => {
+		output.appendLine(`=== Finished with exit code ${code} ===`);
+		output.appendLine('');
+	});
+}
+
+/** @type {vscode.OutputChannel | undefined} */
+var outputChannel;
+
+function getOutputChannel() {
+	if (!outputChannel) {
+		outputChannel = vscode.window.createOutputChannel('Worklog');
+	}
+	return outputChannel;
 }
 
 
 // this method is called when your extension is deactivated
-function deactivate() {}
+function deactivate() {
+	if (outputChannel) outputChannel.dispose();
+}
 
 module.exports = {
 	activate,
